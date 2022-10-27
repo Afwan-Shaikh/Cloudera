@@ -1,0 +1,281 @@
+######LAUNCH A CENTOS 7 MACHINE TAKING c3 or m4  ONLY FOR MAKING THE IMAGE WITH CONNECTOR
+WITH STORAGE 60
+=================NECESSARY PACKAGES========
+
+sudo yum update -y
+
+sudo yum install wget -y
+
+sudo yum install nano -y
+
+sudo yum install httpd -y
+
+sudo yum install python 3.6 -y
+
+sudo yum install zip -y
+
+sudo yum install unzip -y
+
+
+===================INSTALLING JAVA AND JDK============
+
+sudo yum install java-1.7.0-openjdk-devel -y
+
+wget https://s3.amazonaws.com/cloud-age/jdk-8u162-linux-x64.rpm
+
+sudo rpm -Uv jdk-8u162-linux-x64.rpm
+
+=======DOWNLOADING REQUIRED SCRIPTS FOR PRE REQUISITE=========
+
+
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/check-pre-req.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_iptables.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_ipv6.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_selinux.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_thp.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_lzo.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_nscd.sh
+wget https://access.redhat.com/solutions/1489
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_ntp.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_tools.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/remove_tuned.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/tune_kernel.sh
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/sssd.conf
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/nscd.conf
+
+===========EXECUTING THE DOWNLOADING SCRIPTS===========
+
+
+sudo sh disable_iptables.sh
+
+sudo sh disable_ipv6.sh
+
+sudo sh disable_selinux.sh
+
+sudo sh disable_thp.sh
+
+sudo sh install_lzo.sh
+
+sudo sh install_nscd.sh
+
+sudo sh install_ntp.sh
+
+sudo sh install_tools.sh
+
+sudo sh remove_tuned.sh
+
+sudo sh tune_kernel.sh
+
+sudo sysctl vm.swappiness=1
+
+sudo yum install bind-utils -y
+
+sudo service postfix stop
+
+sudo postfix set-permissions
+
+sudo service postfix start
+
+
+==============FOR KEEPING SWAPPINESS=1 ALL THE TIME=============
+
+sudo nano /etc/sysctl.conf
+
+vm.swappiness=1
+
+sudo sysctl -p
+
+=====NOW CHECK FOR PRE REQUISITES=========
+
+sudo sh check-pre-req.sh            
+
+
+==============INSTALLING JDBC CONNECTORS ===============
+
+
+wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.46.tar.gz
+
+tar zxvf mysql-connector-java-5.1.46.tar.gz
+
+sudo mkdir -p /usr/share/java/
+
+cd mysql-connector-java-5.1.46
+
+sudo cp /home/centos/mysql-connector-java-5.1.46/mysql-connector-java-5.1.46-bin.jar /usr/share/java/mysql-connector-java.jar
+
+cd
+
+
+
+
+==============MAKE IMAGE ===============
+
+Make image of Cloudagera Manager AND Launch 4 Instances
+
+Also Make Web_Browser instance by Using AIMImage Provided By 
+
+CLOUDAGE
+
+ami-0367836e5e872633f [IT PRESENT ONLY IN MUMBAI AZ]
+
+
+==============MAKEING CLUSTER ===============
+STEP 1 MAKE CLUSTER FILE
+
+sudo nano cluster
+
+[make a file cluster and paste all private ip address]
+
+STEP 2 
+
+[SEND KEY FROM POWER SHELL to LINUX MACHINE]
+
+sudo nano clustercmd.sh
+ 
+[make file clustercmd.sh and paste below syntex]
+
+for i in `cat cluster`; do
+ssh -t -i ./kee.pem centos@$i $* 
+done
+
+{CHANGE HERE .pem KEY NAME }
+ 
+sudo chmod 400 pem.key
+
+
+
+=================INSTALLING MYSQL SERVER AND DAEMONS=========
+
+wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm md5sum mysql57-community-release-el7-9.noarch.rpm
+
+sudo rpm -ivh mysql57-community-release-el7-9.noarch.rpm
+
+sudo yum install mysql-server
+
+sudo yum install --nogpgcheck mysql-server -y
+
+sudo systemctl start mysqld
+
+sudo systemctl status mysqld
+
+sudo grep 'temporary password' /var/log/mysqld.log
+H/MYsfBBd6s:
+sudo mysql_secure_installation
+
+
+
+Enter password for user root: :paste the temporary password which you get in above command
+New password: P@ssw0rd
+Re-enter new Password: P@ssw0rd
+Change the root password? [Y/n] n
+Remove anonymous users? [Y/n] y
+Disallow root login remotely? [Y/n] y
+Remove test database and access it? [Y/n] n
+Reload privilege tables n? [Y/n] y
+
+==============CREATING DATABASES ===============
+mysql -u root -p
+
+CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+GRANT ALL ON scm.* TO 'scm'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database hive DEFAULT CHARACTER SET utf8;
+grant all on hive.* TO 'hive'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database hue DEFAULT CHARACTER SET utf8;
+grant all on hue.* TO 'hue'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database rman DEFAULT CHARACTER SET utf8;
+grant all on rman.* TO 'rman'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database navs DEFAULT CHARACTER SET utf8;
+grant all on navs.* TO 'navs'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database navms DEFAULT CHARACTER SET utf8;
+grant all on navms.* TO 'navms'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database oozie DEFAULT CHARACTER SET utf8;
+grant all on oozie.* TO 'oozie'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database actmo DEFAULT CHARACTER SET utf8;
+grant all on actmo.* TO 'actmo'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database sentry DEFAULT CHARACTER SET utf8;
+grant all on sentry.* TO 'sentry'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+CREATE USER 'temp'@'%' IDENTIFIED BY 'P@ssw0rd';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER ON *.* TO 'temp'@'%' WITH GRANT OPTION;
+
+show databases;
+exit;
+
+---------CONFIGURATION OF CM-------------(webserver ip)
+{USE WEB SERVER IPS HERE}
+
+sudo nano /etc/yum.repos.d/cloudera-manager.repo
+
+[cloudera-manager]
+# Packages for Cloudera Manager, Version 5, on RedHat or CentOS 7 x86_64 {webserver private dns}
+name=Cloudera Manager
+baseurl=http://ip-172-31-14-41.ap-south-1.compute.internal/cm5.16/
+gpgkey =http://ip-172-31-14-41.ap-south-1.compute.internal/cm5.16/RPM-GPG-KEY-cloudera
+gpgcheck = 0
+
+[cloudera-manager]
+# Packages for Cloudera Manager, Version 5, on RedHat or CentOS 7 x86_64 {webserver private dns}
+name=Cloudera Manager
+baseurl=http://ip-10-3-0-58.ap-south-1.compute.internal/cm6.2.0/
+gpgkey =http://ip-10-3-0-58.ap-south-1.compute.internal/cm6.2.0/RPM-GPG-KEY-cloudera
+gpgcheck = 0
+
+sudo yum clean all
+
+sudo yum makecache
+
+sudo yum install java -y
+
+sudo yum install cloudera-manager-server cloudera-manager-daemons -y
+
+sudo /usr/share/cmf/schema/scm_prepare_database.sh mysql -h ip-172-31-5-141.ap-south-1.compute.internal scm scm P@ssw0rd {yaha mysql me cm or database jaha he uska ip}
+
+{USE HERE database IP}
+sudo find / -name *database.sh* [ for 6.2 ]
+sudo /opt/cloudera/cm/schema/scm_prepare_database.sh mysql -h ip-10-3-14-187.ap-south-1.compute.internal scm scm P@ssw0rd
+
+sudo service cloudera-scm-server start
+
+
+---------TO CHECK STATUS OF CDM -------------
+
+sudo netstat -tulnp
+    
+
+---------ON WEB BROWSER-------------
+
+Public ip:7180 {USE HERE WEB BROWSER}
+
+http://ip-172-31-14-41.ap-south-1.compute.internal/cdh5.16 {webserver ip}
+
+http://ip-172-31-14-41.ap-south-1.compute.internal/cm5.16/  {webserver ip}
+
+http://ip-172-31-14-41.ap-south-1.compute.internal/cm5.16/RPM-GPG-KEY-cloudera   {webserver ip}
+
+for 6.2
+
+http://ip-10-3-0-58.ap-south-1.compute.internal/cdh6.2.0 {webserver ip}
+
+http://ip-10-3-0-58.ap-south-1.compute.internal/cm6.2.0/  {webserver ip}
+
+http://ip-10-3-0-58.ap-south-1.compute.internal/cm6.2.0/RPM-GPG-KEY-cloudera   {webserver ip}
+
+---------CLUSTER SETUP
+SETUP DATABASES   -------------
+
+{ALWAYS COPY CLOUDERA MANAGER PRIVATE DNS AND PASTE}
+
+USE PASSWORD {P@ssw0rd} 
+
+
+
+

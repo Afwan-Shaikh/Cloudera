@@ -1,0 +1,365 @@
+Ubuntu WEB SERVER AMI : ami-0367836e5e872633f (this machine is only for the repo for cm5.16 and cdh5.16)
+# Steps to make a Web server    7iGODs2TN0hNevyXCMtQ
+  sudo apt install apache2
+  wget the required file you want to host on your webserver
+  extract the contents of the file 
+  place the contents of the file in /etc/www/html/
+  (SAME DONE FOR CM5.16 and CDH5.16)
+
+
+LAUNCH A CENTOS 7 MACHINE TAKING c3 or m4  ONLY FOR MAKING THE IMAGE WITH CONNECTOR
+
+==============Kernel Tuning / Prerequisites ================
+
+
+AUTOMATED KERNEL TUNING BY PYTHON SCRIPT
+
+# you can create a file named kernel_tuning.py and paste the followig script to automate the tuning process
+
+#========Script starts here=========
+from subprocess import call
+
+job_list = [
+'sudo yum install wget -y',
+'sudo yum install nano -y',
+'wget https://s3.amazonaws.com/cloud-age/jdk-8u162-linux-x64.rpm',
+'sudo rpm -Uv jdk-8u162-linux-x64.rpm',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/check-pre-req.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_iptables.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_ipv6.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_selinux.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_thp.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_lzo.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_nscd.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_tools.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/remove_tuned.sh',
+'wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/tune_kernel.sh',
+'sudo sh disable_iptables.sh',
+'sudo sh disable_ipv6.sh',
+'sudo sh disable_selinux.sh',
+'sudo sh disable_thp.sh',
+'sudo sh install_lzo.sh',
+'sudo sh install_nscd.sh',
+'sudo sh install_tools.sh',
+'sudo sh remove_tuned.sh',
+'sudo sh tune_kernel.sh',
+'sudo yum install ntp ntpdate ntp-doc -y',
+'sudo chkconfig ntpd on',
+'sudo systemctl start ntpd',
+'sudo sysctl -a | grep vm.swappiness',
+"""sudo su -c 'cat >>/etc/sysctl.conf <<EOL
+'vm.swappiness=1'
+EOL'""",
+'sudo sysctl -p',
+"sudo sed -i '/exit 0/d' /etc/rc.local",
+"""sudo su -c 'cat >>/etc/rc.local <<EOL
+if test -f /sys/kernel/mm/transparent_hugepage/enabled; then
+  echo never > /sys/kernel/mm/transparent_hugepage/enabled
+fi
+if test -f /sys/kernel/mm/transparent_hugepage/defrag; then
+   echo never > /sys/kernel/mm/transparent_hugepage/defrag 
+fi
+exit 0
+EOL'""",
+'sudo yum install sssd -y',
+'wget https://mycloudage.s3.ap-south-1.amazonaws.com/sssd.conf',
+'sudo mv sssd.conf /etc/sssd/',
+'sudo chown root:root /etc/sssd/sssd.conf',
+'sudo chmod 600 /etc/sssd/sssd.conf',
+'sudo systemctl enable sssd',
+'sudo systemctl start sssd',
+'sudo authconfig --enablesssdauth --enablesssd --updateall',
+'wget https://mycloudage.s3.ap-south-1.amazonaws.com/nscd.conf',
+'sudo mv nscd.conf /etc/',
+'sudo timedatectl set-ntp true',
+'sudo timedatectl status',
+'sudo service postfix restart',
+'sudo systemctl start chronyd',
+'sudo systemctl enable chronyd',
+"""sudo su -c touch /home/centos/.ssh/config; echo -e \ "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null" \ > ~/.ssh/config""",
+"""echo -e 'y\n'| ssh-keygen -t rsa -P "" -f $HOME/.ssh/id_rsa""",
+'cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys',
+'sudo chmod 600 config',
+'wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.46.tar.gz',
+'tar zxvf mysql-connector-java-5.1.46.tar.gz',
+'sudo mkdir -p /usr/share/java/',
+'sudo cp mysql-connector-java-5.1.46/mysql-connector-java-5.1.46-bin.jar /usr/share/java/mysql-connector-java.jar',
+'wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm',
+'md5sum mysql57-community-release-el7-9.noarch.rpm',
+'sudo rpm -ivh mysql57-community-release-el7-9.noarch.rpm',
+'sudo yum install --nogpgcheck mysql-server -y',
+'sh check-pre-req.sh',
+]
+
+for job in job_list:    
+    call(job, shell=True)
+#=============Script ends here================
+
+(The above will download all the components required for kernel tuning and execute the shell scripts)
+(MYSQL server, daemons and connector will also be downloaded and installed)
+(After the kernel has been tuned smoke test will run indicating the PASS results)
+
+===============================================================================================================================================================================
+
+MANUAL KERNEL TUNING 
+
+=================NECESSARY PACKAGES========
+
+sudo yum update -y
+
+sudo yum install wget -y
+
+sudo yum install nano -y
+
+
+===================INSTALLING JAVA AND JDK============
+
+sudo yum install java-1.7.0-openjdk-devel -y
+
+wget https://s3.amazonaws.com/cloud-age/jdk-8u162-linux-x64.rpm
+
+sudo rpm -Uv jdk-8u162-linux-x64.rpm
+
+=======DOWNLOADING REQUIRED SCRIPTS FOR PRE REQUISITE=========
+
+
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/check-pre-req.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_iptables.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_ipv6.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_selinux.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_thp.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_lzo.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_nscd.sh
+wget https://access.redhat.com/solutions/1489
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_ntp.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_tools.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/remove_tuned.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/tune_kernel.sh
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/sssd.conf
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/nscd.conf
+
+===========EXECUTING THE DOWNLOADING SCRIPTS===========
+
+
+
+
+sudo sh disable_iptables.sh
+
+sudo sh disable_ipv6.sh
+
+sudo sh disable_selinux.sh
+
+sudo sh disable_thp.sh
+
+sudo sh install_lzo.sh
+
+sudo sh install_nscd.sh
+
+sudo sh install_ntp.sh
+
+sudo sh install_tools.sh
+
+sudo sh remove_tuned.sh
+
+sudo sh tune_kernel.sh
+
+sudo sysctl vm.swappiness=1
+
+sudo yum install bind-utils -y
+
+sudo service postfix stop
+
+sudo postfix set-permissions
+
+sudo service postfix start
+
+
+==============FOR KEEPING SWAPPINESS=1 ALL THE TIME=============
+
+sudo nano /etc/sysctl.conf
+
+vm.swappiness=1
+
+sudo sysctl -p
+
+=====NOW CHECK FOR PRE REQUISITES=========
+
+sudo sh check-pre-req.sh            
+
+
+==============INSTALLING JDBC CONNECTORS ===============
+
+
+wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.46.tar.gz
+
+tar zxvf mysql-connector-java-5.1.46.tar.gz
+
+sudo mkdir -p /usr/share/java/
+
+cd mysql-connector-java-5.1.46
+
+sudo cp /home/centos/mysql-connector-java-5.1.46/mysql-connector-java-5.1.46-bin.jar /usr/share/java/mysql-connector-java.jar
+
+cd
+
+
+==============INSTALLING MYSQL SERVER============================
+
+wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm 
+
+md5sum mysql57-community-release-el7-9.noarch.rpm
+
+sudo rpm -ivh mysql57-community-release-el7-9.noarch.rpm
+
+sudo yum install mysql-server
+
+sudo yum install --nogpgcheck mysql-server -y
+
+======================CLUSTER CMD FILE===================================
+you can create image after the above files and launch the remaining instances with that image
+or you can create this file to install jdbc connectors on all other instances manually
+
+FOR THAT
+
+STEP 1 MAKE CLUSTER FILE
+
+sudo nano cluster
+
+[Paste all private ip address]
+
+STEP 2 
+
+[SEND KEY FROM POWER SHELL to LINUX MACHINE]
+
+sudo nano clustercmd.sh
+ 
+[make file clustercmd.sh and paste below syntax]
+
+for i in `cat cluster`; do
+ssh -t -i ./admin.pem centos@$i $* 
+done
+
+{CHANGE HERE .pem KEY NAME }
+ 
+sudo chmod 400 pem.key
+
+
+==================================================================================================================================================================================================================
+
+
+After the kernel tuning make image of the instance and create a ami
+
+CENTOS 7 KERNEL TUNED : ami-050d82d3d5a4ba879 
+
+===================================================================================================================================================================================================================
+
+CONFIGURING MYSQL 
+
+==================================================================================================
+
+sudo systemctl start mysqld
+
+sudo systemctl status mysqld
+
+sudo grep 'temporary password' /var/log/mysqld.log   u42ddvuhq8(H
+
+sudo mysql_secure_installation
+
+
+
+Enter password for user root: :paste the temporary password which you get in above command
+New password: P@ssw0rd
+Re-enter new Password: P@ssw0rd
+Change the root password? [Y/n] n
+Remove anonymous users? [Y/n] n
+Disallow root login remotely? [Y/n] n
+Remove test database and access it? [Y/n] y
+Reload privilege tables n? [Y/n] y
+
+
+mysql -u root -p
+
+Password : P@ssw0rd 
+
+mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+mysql> GRANT ALL ON scm.* TO 'scm'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+mysql> exit;
+(First Create Database only for scm)
+(After Deploment of cluster is done create rest of the databases)
+
+create database hive DEFAULT CHARACTER SET utf8;
+grant all on hive.* TO 'hive'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database hue DEFAULT CHARACTER SET utf8;
+grant all on hue.* TO 'hue'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database rman DEFAULT CHARACTER SET utf8;
+grant all on rman.* TO 'rman'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database navs DEFAULT CHARACTER SET utf8;
+grant all on navs.* TO 'navs'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database navms DEFAULT CHARACTER SET utf8;
+grant all on navms.* TO 'navms'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database oozie DEFAULT CHARACTER SET utf8;
+grant all on oozie.* TO 'oozie'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database actmo DEFAULT CHARACTER SET utf8;
+grant all on actmo.* TO 'actmo'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+create database sentry DEFAULT CHARACTER SET utf8;
+grant all on sentry.* TO 'sentry'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+CREATE USER 'temp'@'%' IDENTIFIED BY 'P@ssw0rd';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER ON *.* TO 'temp'@'%' WITH GRANT OPTION;
+
+show databases;
+exit;
+===================================================================================================================
+
+sudo nano /etc/yum.repos.d/cloudera-manager.repo
+
+
+#---- {Paste private FQDN of webserver in below fwdn}
+
+[cloudera-manager] 
+# Packages for Cloudera Manager, Version 5, on RedHat or CentOS 7 x86_64   
+name=Cloudera Manager
+baseurl=http://(***Private FQDN of Ubuntu Webserver***)/cm5.16/
+gpgkey =http://(***Private FQDN of Ubuntu Webserver***)/cm5.16/RPM-GPG-KEY-cloudera
+gpgcheck = 0
+
+sudo yum clean all
+
+sudo yum makecache
+
+sudo yum install java -y
+
+sudo yum install cloudera-manager-server cloudera-manager-daemons -y
+
+sudo /usr/share/cmf/schema/scm_prepare_database.sh mysql -h ip-172-31-4-221.ap-south-1.compute.internal scm scm P@ssw0rd
+
+sudo service cloudera-scm-server start
+
+sudo netstat -tunlp | grep 7180 
+#(this command wont give any output for few seconds)
+#(Fire it after a few mins then you can see the the output)
+
+paste private fqdn of the cm machine:7180
+=================YOU HAVE SUCCESSFULLY DEPLOYED CM MANAGER IF YOU CAN SEE THE LOGIN PAGE==========================================================================================================================
+
+==========TO CHECK STATUS OF CLOUDERA-MANAGER SCM SERVER==================================
+sudo yum install net-tools
+
+sudo netstat -tunlp
+
+CLOUDERA CLUSTER SETUP BEGINS HERE
+
+
+
+
+
+
